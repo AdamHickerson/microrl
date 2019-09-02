@@ -219,7 +219,11 @@ inline static void print_prompt (microrl_t * pThis)
 //*****************************************************************************
 inline static void terminal_backspace (microrl_t * pThis)
 {
-		pThis->print ("\033[D \033[D");
+#ifdef _PLAIN_TEXT
+	pThis->print ("\x08 \x08");
+#else
+	pThis->print ("\033[D \033[D");
+#endif
 }
 
 //*****************************************************************************
@@ -229,6 +233,7 @@ inline static void terminal_newline (microrl_t * pThis)
 }
 
 #ifndef _USE_LIBC_STDIO
+#ifndef _PLAIN_TEXT
 //*****************************************************************************
 // convert 16 bit value to string
 // 0 value not supported!!! just make empty string
@@ -249,12 +254,14 @@ static char *u16bit_to_str (unsigned int nmb, char * buf)
 	return buf;
 }
 #endif
+#endif
 
 
 //*****************************************************************************
 // set cursor at position from begin cmdline (after prompt) + offset
 static void terminal_move_cursor (microrl_t * pThis, int offset)
 {
+#ifndef _PLAIN_TEXT
 	char str[16] = {0,};
 #ifdef _USE_LIBC_STDIO 
 	if (offset > 0) {
@@ -275,11 +282,17 @@ static void terminal_move_cursor (microrl_t * pThis, int offset)
 		return;
 #endif	
 	pThis->print (str);
+#endif
 }
 
 //*****************************************************************************
 static void terminal_reset_cursor (microrl_t * pThis)
 {
+#ifdef _PLAIN_TEXT
+	for(int i = 0; i < pThis->cmdlen; i++){
+		terminal_backspace(pThis);
+	}
+#else
 	char str[16];
 #ifdef _USE_LIBC_STDIO
 	snprintf (str, 16, "\033[%dD\033[%dC", \
@@ -294,13 +307,16 @@ static void terminal_reset_cursor (microrl_t * pThis)
 	strcpy (endstr, "C");
 #endif
 	pThis->print (str);
+#endif
 }
 
 //*****************************************************************************
 // print cmdline to screen, replace '\0' to wihitespace 
 static void terminal_print_line (microrl_t * pThis, int pos, int cursor)
 {
+#ifndef _PLAIN_TEXT
 	pThis->print ("\033[K");    // delete all from cursor to end
+#endif
 
 	char nch [] = {0,0};
 	int i;
@@ -310,8 +326,10 @@ static void terminal_print_line (microrl_t * pThis, int pos, int cursor)
 			nch[0] = ' ';
 		pThis->print (nch);
 	}
-	
+
+#ifndef _PLAIN_TEXT
 	terminal_reset_cursor (pThis);
+#endif
 	terminal_move_cursor (pThis, cursor);
 }
 
@@ -361,11 +379,18 @@ void microrl_set_sigint_callback (microrl_t * pThis, void (*sigintf)(void))
 #ifdef _USE_HISTORY
 static void hist_search (microrl_t * pThis, int dir)
 {
+#ifdef _PLAIN_TEXT
+	terminal_reset_cursor (pThis);
+#endif
 	int len = hist_restore_line (&pThis->ring_hist, pThis->cmdline, dir);
 	if (len >= 0) {
+#ifndef _PLAIN_TEXT
 		pThis->cmdline[len] = '\0';
+#endif
 		pThis->cursor = pThis->cmdlen = len;
+#ifndef _PLAIN_TEXT
 		terminal_reset_cursor (pThis);
+#endif
 		terminal_print_line (pThis, 0, pThis->cursor);
 	}
 }
@@ -621,7 +646,9 @@ void microrl_insert_char (microrl_t * pThis, int ch)
 			break;
 			//-----------------------------------------------------
 			case KEY_VT:  // ^K
+#ifndef _PLAIN_TEXT
 				pThis->print ("\033[K");
+#endif
 				pThis->cmdlen = pThis->cursor;
 			break;
 			//-----------------------------------------------------
@@ -666,6 +693,7 @@ void microrl_insert_char (microrl_t * pThis, int ch)
 				microrl_backspace (pThis);
 				terminal_print_line (pThis, pThis->cursor, pThis->cursor);
 			break;
+#ifndef _PLAIN_TEXT
 			//-----------------------------------------------------
 			case KEY_DC2: // ^R
 				terminal_newline (pThis);
@@ -674,6 +702,7 @@ void microrl_insert_char (microrl_t * pThis, int ch)
 				terminal_print_line (pThis, 0, pThis->cursor);
 			break;
 			//-----------------------------------------------------
+#endif
 #ifdef _USE_CTLR_C
 			case KEY_ETX:
 			if (pThis->sigint != NULL)

@@ -79,6 +79,10 @@ already initialize and ready to print message */
 #undef _ENABLE_INIT_PROMPT
 
 /*
+If defined, remove all escape codes and use plain ASCII only */
+#undef _PLAIN_TEXT
+
+/*
 New line symbol */
 #define _ENDL_LF
 
