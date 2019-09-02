@@ -4,11 +4,11 @@ BUGS and TODO:
 -- add echo_off feature
 -- rewrite history for use more than 256 byte buffer
 */
+#include "microrl.h"
 
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include "microrl.h"
 #ifdef _USE_LIBC_STDIO
 #include <stdio.h>
 #endif
